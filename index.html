@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精美倒计时</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            padding: 20px;
+            transition: background 0.3s ease, background-image 0.3s ease;
+            position: relative;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        /* 删除大标题 */
+        /* #pageTitle {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            cursor: text;
+            transition: color 0.3s ease;
+        }
+        #pageTitle:hover {
+            color: #3498db;
+        } */
+        .countdownList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .countdown {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: grab;
+            width: calc(50% - 10px); /* 两个卡片每行 */
+            position: relative;
+            height: 120px;
+        }
+        .countdown:active {
+            cursor: grabbing;
+        }
+        .countdown:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        .countdown-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 70%;
+        }
+        .eventName {
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: text;
+            transition: color 0.3s ease;
+        }
+        .eventName:hover {
+            color: #3498db;
+        }
+        .remark {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            cursor: text;
+            border: none;
+            background: transparent;
+        }
+        .remark:focus {
+            outline: none;
+            border-bottom: 1px dashed #3498db;
+        }
+        .countdown-right {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            cursor: default;
+        }
+        .countdown .delete {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: none; /* 默认隐藏 */
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+        }
+        .countdown .delete:hover {
+            background-color: #c0392b;
+        }
+        .countdown.show-delete .delete {
+            display: block; /* 点击后显示 */
+        }
+        /* 添加倒计时按钮 */
+        #addCountdown {
+            font-size: 24px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        #addCountdown:hover {
+            background-color: #27ae60;
+            transform: scale(1.1);
+        }
+        /* 添加倒计时表单 */
+        #addForm {
+            display: none;
+            margin-top: 20px;
+            text-align: left;
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #addForm.active {
+            display: block;
+        }
+        #addForm input[type="text"],
+        #addForm input[type="date"] {
+            width: calc(50% - 20px);
+            padding: 10px;
+            margin: 10px 10px 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #addForm button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px 10px 0 0;
+        }
+        #addForm button:hover {
+            background-color: #2980b9;
+        }
+        /* 背景设置按钮 */
+        #bgSettingsBtn {
+            font-size: 18px;
+            background-color: rgba(52, 152, 219, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            position: fixed;
+            bottom: 90px; /* 在添加按钮上方 */
+            right: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8; /* 更不显眼 */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        #bgSettingsBtn:hover {
+            background-color: rgba(41, 128, 185, 0.9);
+            transform: scale(1.1);
+        }
+        /* 背景设置模态窗口 */
+        #bgSettingsModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #bgSettingsContent {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+            position: relative;
+        }
+        #bgSettingsContent h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        #bgSettingsContent input[type="color"],
+        #bgSettingsContent input[type="file"] {
+            margin: 10px 0;
+            width: 100%;
+        }
+        #bgSettingsContent button.close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #e74c3c;
+        }
+        #bgSettingsContent button.close-modal:hover {
+            color: #c0392b;
+        }
+        /* 添加文本框按钮 */
+        #addTextBox {
+            font-size: 18px;
+            background-color: #8e44ad;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        #addTextBox:hover {
+            background-color: #732d91;
+        }
+        /* 添加文本框模态窗口 */
+        #textBoxModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        #textBoxContent {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 350px;
+            text-align: center;
+            position: relative;
+        }
+        #textBoxContent h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        #textBoxContent input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #textBoxContent input[type="color"],
+        #textBoxContent select {
+            width: 48%;
+            padding: 10px;
+            margin: 10px 1%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #textBoxContent button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px 5px 0 5px;
+        }
+        #textBoxContent button:hover {
+            background-color: #2980b9;
+        }
+        /* 可拖拽文本框 */
+        .text-box {
+            position: absolute;
+            cursor: move;
+            padding: 5px;
+            border: 1px dashed transparent;
+            user-select: none;
+        }
+        .text-box:active {
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 移除大标题 -->
+        <!-- <h1 id="pageTitle" contenteditable="true">我的倒计时</h1> -->
+        <div id="countdownList" class="countdownList"></div>
+        
+        <!-- 添加倒计时的按钮 -->
+        <button id="addCountdown">+</button>
+        
+        <!-- 添加倒计时的表单 -->
+        <div id="addForm">
+            <h2>添加倒计时项目</h2>
+            <input type="text" id="newEventName" placeholder="事件名称">
+            <input type="date" id="newEventDate">
+            <button onclick="submitNewCountdown()">添加</button>
+            <button onclick="toggleAddForm()">取消</button>
+        </div>
+        
+        <!-- 背景设置按钮 -->
+        <button id="bgSettingsBtn">🎨</button>
+        
+        <!-- 背景设置模态窗口 -->
+        <div id="bgSettingsModal">
+            <div id="bgSettingsContent">
+                <button class="close-modal" onclick="closeBgSettings()">&times;</button>
+                <h2>设置背景</h2>
+                <input type="color" id="bgColorPicker" title="选择背景颜色">
+                <br>
+                <label for="bgImageUpload" class="file-upload">
+                    上传背景图片
+                    <input type="file" id="bgImageUpload" accept="image/*">
+                </label>
+                <br>
+                <button class="submit-bg" onclick="closeBgSettings()">关闭</button>
+            </div>
+        </div>
+        
+        <!-- 添加文本框按钮 -->
+        <button id="addTextBox">添加文本</button>
+        
+        <!-- 添加文本框模态窗口 -->
+        <div id="textBoxModal">
+            <div id="textBoxContent">
+                <button class="close-modal" onclick="closeTextBoxModal()">&times;</button>
+                <h2>添加文本框</h2>
+                <input type="text" id="newTextContent" placeholder="输入文本内容">
+                <br>
+                <input type="color" id="textColor" title="选择文本颜色">
+                <select id="textSize">
+                    <option value="14px">14px</option>
+                    <option value="16px" selected>16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                    <option value="24px">24px</option>
+                    <option value="28px">28px</option>
+                    <option value="32px">32px</option>
+                </select>
+                <select id="textFont">
+                    <option value="Arial" selected>Arial</option>
+                    <option value="'Helvetica Neue', Arial, sans-serif">Helvetica Neue</option>
+                    <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                    <option value="'Georgia', serif">Georgia</option>
+                </select>
+                <button onclick="addTextBox()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadCountdowns();
+            setupEventListeners();
+            startCountdownUpdates();
+        });
+
+        // 加载设置
+        function loadSettings() {
+            const bgColor = localStorage.getItem('bgColor');
+            if (bgColor) {
+                document.body.style.backgroundColor = bgColor;
+                document.body.style.backgroundImage = '';
+                document.getElementById('bgColorPicker').value = bgColor;
+            }
+
+            const bgImage = localStorage.getItem('bgImage');
+            if (bgImage) {
+                document.body.style.backgroundImage = `url(${bgImage})`;
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center';
+            }
+        }
+
+        // 加载倒计时项目
+        function loadCountdowns() {
+            const countdowns = JSON.parse(localStorage.getItem('countdowns')) || [];
+            const list = document.getElementById('countdownList');
+            list.innerHTML = '';
+            countdowns.forEach(createCountdownElement);
+        }
+
+        // 创建倒计时元素
+        function createCountdownElement(countdown) {
+            const div = document.createElement('div');
+            div.className = 'countdown';
+            div.draggable = true;
+            div.dataset.date = countdown.date;
+            div.dataset.name = countdown.name;
+            div.dataset.remark = countdown.remark || '';
+
+            div.innerHTML = `
+                <div class="countdown-left">
+                    <span class="eventName" contenteditable="true">距离 ${countdown.name}</span>
+                    <input type="text" class="remark" placeholder="备注" value="${countdown.remark || ''}" title="点击编辑备注">
+                </div>
+                <span class="countdown-right" style="color: #e74c3c;">0天</span>
+                <button class="delete">删除</button>
+            `;
+
+            document.getElementById('countdownList').appendChild(div);
+        }
+
+        // 更新倒计时
+        function updateCountdowns() {
+            const countdowns = document.querySelectorAll('.countdown');
+            countdowns.forEach(countdown => {
+                const daysElement = countdown.querySelector('.countdown-right');
+                const date = new Date(countdown.dataset.date);
+                const now = new Date();
+                const diff = date - now;
+                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                daysElement.textContent = days > 0 ? `${days}天` : '已过期';
+            });
+        }
+
+        // 启动倒计时更新
+        function startCountdownUpdates() {
+            updateCountdowns();
+            setInterval(updateCountdowns, 1000 * 60); // 每分钟更新一次
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 背景颜色选择器
+            document.getElementById('bgColorPicker').addEventListener('input', (e) => {
+                document.body.style.backgroundColor = e.target.value;
+                document.body.style.backgroundImage = '';
+                localStorage.setItem('bgColor', e.target.value);
+                localStorage.removeItem('bgImage');
+            });
+
+            // 背景图片上传
+            document.getElementById('bgImageUpload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.body.style.backgroundImage = `url(${event.target.result})`;
+                        document.body.style.backgroundSize = 'cover';
+                        document.body.style.backgroundPosition = 'center';
+                        document.body.style.backgroundColor = '';
+                        localStorage.setItem('bgImage', event.target.result);
+                        localStorage.removeItem('bgColor');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // 打开背景设置模态窗口
+            document.getElementById('bgSettingsBtn').addEventListener('click', () => {
+                document.getElementById('bgSettingsModal').style.display = 'flex';
+            });
+
+            // 关闭背景设置模态窗口
+            window.addEventListener('click', (e) => {
+                const modal = document.getElementById('bgSettingsModal');
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // 添加新倒计时表单显示/隐藏
+            document.getElementById('addCountdown').addEventListener('click', () => {
+                toggleAddForm();
+            });
+
+            // 编辑倒计时项目名称和备注
+            document.getElementById('countdownList').addEventListener('input', (e) => {
+                if (e.target.classList.contains('eventName')) {
+                    const countdown = e.target.closest('.countdown');
+                    const newName = e.target.textContent.replace('距离 ', '').trim();
+                    countdown.dataset.name = newName;
+                    saveCountdowns();
+                }
+
+                if (e.target.classList.contains('remark')) {
+                    const countdown = e.target.closest('.countdown');
+                    const newRemark = e.target.value.trim();
+                    countdown.dataset.remark = newRemark;
+                    saveCountdowns();
+                }
+            });
+
+            // 编辑倒计时项目日期
+            document.getElementById('countdownList').addEventListener('dblclick', (e) => {
+                if (e.target.classList.contains('countdown-right')) {
+                    const countdown = e.target.closest('.countdown');
+                    const newDate = prompt('请输入新的日期（YYYY-MM-DD）：', countdown.dataset.date);
+                    if (newDate) {
+                        countdown.dataset.date = newDate;
+                        saveCountdowns();
+                        updateCountdowns();
+                    }
+                }
+            });
+
+            // 删除倒计时
+            document.getElementById('countdownList').addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete')) {
+                    const countdown = e.target.closest('.countdown');
+                    countdown.remove();
+                    saveCountdowns();
+                }
+            });
+
+            // 显示删除按钮
+            document.getElementById('countdownList').addEventListener('click', (e) => {
+                const countdown = e.target.closest('.countdown');
+                if (countdown) {
+                    // Toggle the 'show-delete' class
+                    countdown.classList.toggle('show-delete');
+
+                    // Hide other delete buttons
+                    const allCountdowns = document.querySelectorAll('.countdown');
+                    allCountdowns.forEach(cd => {
+                        if (cd !== countdown) {
+                            cd.classList.remove('show-delete');
+                        }
+                    });
+                }
+            });
+
+            // 拖拽排序
+            const list = document.getElementById('countdownList');
+            let draggedElement = null;
+
+            list.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('countdown')) {
+                    draggedElement = e.target;
+                    e.target.style.opacity = '0.5';
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+            });
+
+            list.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const target = e.target.closest('.countdown');
+                if (target && target !== draggedElement) {
+                    const bounding = target.getBoundingClientRect();
+                    const offset = e.clientY - bounding.top + (bounding.height / 2);
+                    if (offset > bounding.height / 2) {
+                        target.after(draggedElement);
+                    } else {
+                        target.before(draggedElement);
+                    }
+                }
+            });
+
+            list.addEventListener('dragend', (e) => {
+                if (e.target.classList.contains('countdown')) {
+                    e.target.style.opacity = '1';
+                    saveCountdowns();
+                }
+            });
+
+            // 添加文本框按钮
+            document.getElementById('addTextBox').addEventListener('click', () => {
+                openTextBoxModal();
+            });
+
+            // 关闭文本框模态窗口
+            window.addEventListener('click', (e) => {
+                const modal = document.getElementById('textBoxModal');
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // 保存倒计时顺序和备注
+        function saveCountdowns() {
+            const countdowns = [...document.querySelectorAll('.countdown')].map(el => ({
+                name: el.querySelector('.eventName').textContent.replace('距离 ', '').trim(),
+                date: el.dataset.date,
+                remark: el.querySelector('.remark').value.trim()
+            }));
+            localStorage.setItem('countdowns', JSON.stringify(countdowns));
+        }
+
+        // 切换添加倒计时表单显示
+        function toggleAddForm() {
+            const form = document.getElementById('addForm');
+            form.classList.toggle('active');
+            if (form.classList.contains('active')) {
+                document.getElementById('newEventName').focus();
+            } else {
+                document.getElementById('newEventName').value = '';
+                document.getElementById('newEventDate').value = '';
+            }
+        }
+
+        // 提交新的倒计时
+        function submitNewCountdown() {
+            const nameInput = document.getElementById('newEventName');
+            const dateInput = document.getElementById('newEventDate');
+            const name = nameInput.value.trim();
+            const date = dateInput.value;
+
+            if (name && date) {
+                const countdowns = JSON.parse(localStorage.getItem('countdowns')) || [];
+                countdowns.push({ name, date, remark: '' });
+                localStorage.setItem('countdowns', JSON.stringify(countdowns));
+                createCountdownElement({ name, date, remark: '' });
+                updateCountdowns();
+                nameInput.value = '';
+                dateInput.value = '';
+                toggleAddForm();
+            } else {
+                alert("请填写完整的事件名称和日期！");
+            }
+        }
+
+        // 打开文本框模态窗口
+        function openTextBoxModal() {
+            document.getElementById('textBoxModal').style.display = 'flex';
+        }
+
+        // 关闭文本框模态窗口
+        function closeTextBoxModal() {
+            document.getElementById('textBoxModal').style.display = 'none';
+        }
+
+        // 添加文本框
+        function addTextBox() {
+            const content = document.getElementById('newTextContent').value.trim();
+            const color = document.getElementById('textColor').value;
+            const size = document.getElementById('textSize').value;
+            const font = document.getElementById('textFont').value;
+
+            if (content) {
+                const textBox = document.createElement('div');
+                textBox.className = 'text-box';
+                textBox.textContent = content;
+                textBox.style.color = color;
+                textBox.style.fontSize = size;
+                textBox.style.fontFamily = font;
+                textBox.style.position = 'absolute';
+                textBox.style.left = '50px';
+                textBox.style.top = '50px';
+                textBox.style.cursor = 'move';
+
+                // 使文本框可拖拽
+                dragElement(textBox);
+
+                document.body.appendChild(textBox);
+
+                // 保存文本框的位置和样式到 localStorage
+                saveTextBoxes();
+
+                // 清空表单
+                document.getElementById('newTextContent').value = '';
+                document.getElementById('textColor').value = '#000000';
+                document.getElementById('textSize').value = '16px';
+                document.getElementById('textFont').value = 'Arial';
+
+                // 关闭模态窗口
+                closeTextBoxModal();
+            } else {
+                alert("请输入文本内容！");
+            }
+        }
+
+        // 使元素可拖拽
+        function dragElement(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            elmnt.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                // 获取 the mouse cursor position at startup:
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                // Call a function whenever the cursor moves:
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                // Calculate the new cursor position:
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // Set the element's new position:
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                // Save the position
+                saveTextBoxes();
+            }
+
+            function closeDragElement() {
+                // Stop moving when mouse button is released:
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        // 保存文本框信息到 localStorage
+        function saveTextBoxes() {
+            const textBoxes = [...document.querySelectorAll('.text-box')].map(el => ({
+                content: el.textContent,
+                color: el.style.color,
+                size: el.style.fontSize,
+                font: el.style.fontFamily,
+                left: el.style.left,
+                top: el.style.top
+            }));
+            localStorage.setItem('textBoxes', JSON.stringify(textBoxes));
+        }
+
+        // 加载文本框
+        function loadTextBoxes() {
+            const textBoxes = JSON.parse(localStorage.getItem('textBoxes')) || [];
+            textBoxes.forEach(tb => {
+                const textBox = document.createElement('div');
+                textBox.className = 'text-box';
+                textBox.textContent = tb.content;
+                textBox.style.color = tb.color;
+                textBox.style.fontSize = tb.size;
+                textBox.style.fontFamily = tb.font;
+                textBox.style.position = 'absolute';
+                textBox.style.left = tb.left;
+                textBox.style.top = tb.top;
+                textBox.style.cursor = 'move';
+
+                // 使文本框可拖拽
+                dragElement(textBox);
+
+                document.body.appendChild(textBox);
+            });
+        }
+
+        // 修改倒计时右侧天数的颜色
+        // 你可以在倒计时卡片内添加一个颜色选择器来更改天数颜色
+
+        // 拖拽功能已经在前面实现
+
+        // 扩展: 添加功能以编辑天数的颜色
+        function setupCountdownColorChange() {
+            document.getElementById('countdownList').addEventListener('click', (e) => {
+                if (e.target.classList.contains('countdown-right')) {
+                    const countdown = e.target.closest('.countdown');
+                    const newColor = prompt("请输入天数的颜色（如 #ff0000 或 red）：", e.target.style.color || '#e74c3c');
+                    if (newColor) {
+                        e.target.style.color = newColor;
+                        saveCountdowns();
+                    }
+                }
+            });
+        }
+
+        // 加载所有功能
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTextBoxes();
+            setupCountdownColorChange();
+        });
+
+        // 创建倒计时元素（确保唯一）
+        function createCountdownElement(countdown) {
+            const div = document.createElement('div');
+            div.className = 'countdown';
+            div.draggable = true;
+            div.dataset.date = countdown.date;
+            div.dataset.name = countdown.name;
+            div.dataset.remark = countdown.remark || '';
+
+            div.innerHTML = `
+                <div class="countdown-left">
+                    <span class="eventName" contenteditable="true">距离 ${countdown.name}</span>
+                    <input type="text" class="remark" placeholder="备注" value="${countdown.remark || ''}" title="点击编辑备注">
+                </div>
+                <span class="countdown-right" style="color: #e74c3c;">0天</span>
+                <button class="delete">删除</button>
+            `;
+
+            document.getElementById('countdownList').appendChild(div);
+        }
+    </script>
+</body>
+</html>
